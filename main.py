@@ -22,10 +22,10 @@ def agregar_tarea_simple(gestion):
     id = input("Ingrese el ID de la tarea: ")
     titulo = input("Ingrese el título de la tarea: ")
     descripcion = input("Ingrese la descripción de la tarea: ")
-    fecha_ingreso = input("Ingrese la fecha de ingreso (YYYY-MM-DD): ")
-    fecha_vencimiento = input("Ingrese la fecha de vencimiento (YYYY-MM-DD): ")
+    fechaIngreso = input("Ingrese la fecha de ingreso (YYYY-MM-DD): ")
+    fechaVencimiento = input("Ingrese la fecha de vencimiento (YYYY-MM-DD): ")
     estado = input("Ingese el estado, 1. Pendiente, 2. En Progreso, 3. Completada: ")
-    tarea = TareaSimple(id, titulo, descripcion, fecha_ingreso, estado, fecha_vencimiento)
+    tarea = TareaSimple(id, titulo, descripcion, fechaIngreso, estado, fechaVencimiento)
 
     gestion.agregar_tarea(tarea)
     input("Presione Enter para continuar...")
@@ -43,23 +43,22 @@ def agregar_tarea_recurrente(gestion):
     input("Presione Enter para continuar...")
 
 def eliminar_tarea(gestion):
-    gestion.mostrar_tareas()
+    gestion.mostrar_todas_las_tareas()
     id = input("Ingrese el ID de la tarea a eliminar: ")
     gestion.eliminar_tarea(id)
-    gestion.mostrar_tareas()
+    gestion.mostrar_todas_las_tareas()
     input("Presione Enter para continuar...")
 
 def modificar_estado_tarea(gestion):
-    gestion.mostrar_tareas()
+    gestion.mostrar_todas_las_tareas()
     id = input("Ingrese el ID de la tarea a modificar: ")
     estado = input("Ingrese el nuevo estado: ")
     gestion.modificar_estado_tarea(id, estado)
-    gestion.mostrar_tareas()
+    gestion.mostrar_tarea(id)
     input("Presione Enter para continuar...")
     
 if __name__ == '__main__':
-    archivo_tareas = 'tareas.json'
-    gestion = GestionTareas(archivo_tareas)
+    gestion = GestionTareas()
     limpiar_pantalla()
     mostrar_menu()
     while True:
@@ -71,7 +70,7 @@ if __name__ == '__main__':
         elif opcion == '2':
             agregar_tarea_recurrente(gestion)
         elif opcion == '3':
-            gestion.mostrar_tareas()
+            gestion.mostrar_todas_las_tareas()
             input("Presione Enter para continuar...")
         elif opcion == '4':
             eliminar_tarea(gestion)

@@ -1,16 +1,18 @@
 import datetime
-import json
+import mysql.connector
+from mysql.connector import Error
+from decouple import config
 
 class Tarea:
-    def __init__(self, id, titulo, descripcion, fecha_ingreso, estado):
+    def __init__(self, id, titulo, descripcion, fechaIngreso, estado):
         self.id = self.validar_id(id)
         self.titulo = self.validar_titulo(titulo)
         self.descripcion = descripcion
-        self.fecha_ingreso = fecha_ingreso
+        self.fechaIngreso = fechaIngreso
         self.estado = self.validar_estado(estado)
 
     def __str__(self):
-        return f"{self.descripcion} - Ingreso: {self.fecha_ingreso} - Vencimiento: {self.fecha_vencimiento} - Estado: {self.estado}"
+        return f"{self.descripcion} - Ingreso: {self.fechaIngreso} - Estado: {self.estado}"
     
     @property
     def id(self):
@@ -22,14 +24,14 @@ class Tarea:
     def descripcion(self):
         return self.__descripcion
     @property
-    def fecha_ingreso(self):
-        return self.__fecha_ingreso
+    def fechaIngreso(self):
+        return self.__fechaIngreso
     @property
     def estado(self):
         return self.__estado
-    @fecha_ingreso.setter
-    def fecha_ingreso(self, fecha_ingreso):
-        self.__fecha_ingreso = fecha_ingreso
+    @fechaIngreso.setter
+    def fechaIngreso(self, fechaIngreso):
+        self.__fechaIngreso = fechaIngreso
 
     @estado.setter
     def estado(self, estado):
@@ -67,43 +69,43 @@ class Tarea:
             "id": self.__id,
             "titulo": self.__titulo,
             "descripcion": self.__descripcion,
-            "fecha_ingreso": self.__fecha_ingreso,
+            "fechaIngreso": self.__fechaIngreso,
             "estado": self.__estado
         }
 
 class TareaSimple(Tarea):
-    def __init__(self, id, titulo, descripcion, fecha_ingreso, estado, fecha_vencimiento):
-        super().__init__(id, titulo, descripcion, fecha_ingreso, estado)
-        self.fecha_vencimiento = self.validar_fecha_vencimiento(fecha_vencimiento)
+    def __init__(self, id, titulo, descripcion, fechaIngreso, estado, fechaVencimiento):
+        super().__init__(id, titulo, descripcion, fechaIngreso, estado)
+        self.fechaVencimiento = self.validar_fecha_vencimiento(fechaVencimiento)
 
     @property
-    def fecha_vencimiento(self):
-        return self.__fecha_vencimiento
-    @fecha_vencimiento.setter
+    def fechaVencimiento(self):
+        return self.__fechaVencimiento
+    @fechaVencimiento.setter
 
-    def fecha_vencimiento(self, fecha_vencimiento):
-        self.__fecha_vencimiento = self.validar_fecha_vencimiento(fecha_vencimiento)
-        return self.__fecha_vencimiento
+    def fechaVencimiento(self, fechaVencimiento):
+        self.__fechaVencimiento = self.validar_fecha_vencimiento(fechaVencimiento)
+        return self.__fechaVencimiento
     
-    def validar_fecha_vencimiento(self, fecha_vencimiento):
+    def validar_fecha_vencimiento(self, fechaVencimiento):
         try:
-            if fecha_vencimiento < datetime.datetime.now().strftime('%Y-%m-%d'):
+            if fechaVencimiento < datetime.datetime.now().strftime('%Y-%m-%d'):
                 raise ValueError("La fecha de vencimiento no puede ser en el pasado.")
         except ValueError as e:
             raise ValueError(f"Fecha de vencimiento inválida: {e}")
-        return fecha_vencimiento
+        return fechaVencimiento
     
     def to_dict(self):
         data = super().to_dict()
-        data["fecha_vencimiento"] = self.fecha_vencimiento
+        data["fechaVencimiento"] = self.fechaVencimiento
         return data
     
     def __str__(self):
-        return f"super().__str__() - Vencimiento: {self.fecha_vencimiento}" 
+        return f"super().__str__() - Vencimiento: {self.fechaVencimiento}" 
 
 class TareaRecurrente(Tarea):
-    def __init__(self, id, titulo, descripcion, fecha_ingreso, estado, frecuencia):
-        super().__init__(id, titulo, descripcion, fecha_ingreso, estado)
+    def __init__(self, id, titulo, descripcion, fechaIngreso, estado, frecuencia):
+        super().__init__(id, titulo, descripcion, fechaIngreso, estado)
         self.frecuencia = self.validar_frecuencia(frecuencia)
     
     @property
@@ -128,73 +130,154 @@ class TareaRecurrente(Tarea):
     def __str__(self):
         return f"super().__str__() - Frecuencia: {self.frecuencia}"
 class GestionTareas:
-    def __init__(self, archivo):
-        self.archivo = archivo
+    def __init__(self):
+        self.host = config('DB_HOST')
+        self.user = config('DB_USER')
+        self.password = config('DB_PASSWORD')
+        self.database = config('DB_NAME')
+        self.port = config('DB_PORT')
 
-    def leer_datos(self):
+    def connect(self):
         try:
-            with open(self.archivo, 'r') as file:
-                datos = json.load(file)
-        except FileNotFoundError:
-            return{}
-        except Exception as error:
-            raise Exception(f'Error al leer datos del archivo: {error}')
-        return datos
+            connection = mysql.connector.connect(
+                host=self.host,
+                user=self.user,
+                password=self.password,
+                database=self.database,
+                port=self.port
+            )
+
+            if connection.is_connected():
+                return connection
+ 
+        except mysql.connector.Error as error:
+            print(f"Error al conectar a la base de datos: {error}")
+            return None
+    
     def agregar_tarea(self, tarea):
         try:
-            datos = self.leer_datos()
-            id = tarea.id      
-            if str(id) not in datos.keys(): #keys = clave, value = valor, item = todo el registro
-                datos[id] = tarea.to_dict()
-                self.guardar_datos(datos)
-                print(f'Tarea con el ID {id} creado correctamente.')
-            else:
-                print(f'Tarea con id {id} ya existe')
+            connection = self.connect()
+            if connection:
+                with connection.cursor() as cursor:
+                    #Verificar si el id de tarea ya existe
+                    cursor.execute("SELECT id FROM tareas WHERE id = %s", (tarea.id,))
+                    result = cursor.fetchone()
+                    if result:
+                        print(f"Ya existe una tarea con el ID {tarea.id}")
+                        return
+                    else:
+                        #Insertar la tarea
+                        cursor.execute("INSERT INTO tareas (id, titulo, descripcion, fechaIngreso, estado) VALUES (%s, %s, %s, %s, %s)", (tarea.id, tarea.titulo, tarea.descripcion, tarea.fechaIngreso, tarea.estado))
+                        #Verificar que tipo de tarea es
+                        if isinstance(tarea, TareaSimple):
+                            cursor.execute("INSERT INTO tareaSimple (id, fechaVencimiento) VALUES (%s, %s)", (tarea.id, tarea.fechaVencimiento))
+                        elif isinstance(tarea, TareaRecurrente):
+                            cursor.execute("INSERT INTO tareaRecurrente (id, frecuencia) VALUES (%s, %s)", (tarea.id, tarea.frecuencia))
+                        connection.commit()
+                        print(f"Tarea con el ID {tarea.id} creada correctamente.")
         except Exception as error:
             print(f'Error inesperado al crear la tarea: {error}')    
-    def guardar_datos(self, datos):
-        with open(self.archivo, 'w') as file:
-            json.dump(datos, file, indent=4)
-    def mostrar_tareas(self):
-        datos = self.leer_datos()
-        if not datos:
-            print("No hay tareas registradas.")
-        else:
-            for tarea in datos.values():
-                if 'fecha_vencimiento' in tarea:
-                    match tarea['estado']:
-                        case '1':
-                            estado = 'Pendiente'
-                        case '2':
-                            estado = 'En Progreso'
-                        case '3':
-                            estado = 'Completada'
+
+    def mostrar_tarea(self, id):
+        try:
+            connection = self.connect()
+            if connection:
+                with connection.cursor(dictionary=True) as cursor:
+                    cursor.execute("SELECT * FROM tareas WHERE id = %s", (int(id),))
+                    tarea_data = cursor.fetchone()
                     
-                    print(tarea['id'] + ' ' + tarea['titulo'] + ' ' + tarea['descripcion'] + ' ' + tarea['fecha_ingreso'] + ' ' + tarea['fecha_vencimiento'] + ' ' + estado)
+                    if tarea_data:
+                        cursor.execute("SELECT fechaVencimiento FROM tareaSimple WHERE id = %s", (id,))
+                        fechaVencimiento = cursor.fetchone()
+
+                        if fechaVencimiento:
+                            tarea_data['fechaVencimiento'] = fechaVencimiento['fechaVencimiento']
+                            tarea = TareaSimple(**tarea_data)
+                        
+                        else:
+                            cursor.execute("SELECT frecuencia FROM tareaRecurrente WHERE id = %s", (id,))
+                            frecuencia = cursor.fetchone()
+
+                            if frecuencia:
+                                tarea_data['frecuencia'] = frecuencia['frecuencia']
+                                tarea = TareaRecurrente(**tarea_data)
+                            else:
+                                tarea = Tarea(**tarea_data)
+                    else:
+                        tarea = None
+
+        except Error as error:
+            print(f'Error inesperado al mostrar la tarea: {error}')
+        else:
+            return tarea
+        finally:
+            if connection:
+                connection.close()  
+
+    def mostrar_todas_las_tareas(self):
+        try:
+            connection = self.connect()
+            if connection:
+                cursor = connection.cursor()
+                cursor.execute("SELECT * FROM tareas")
+                tareas = cursor.fetchall()
+                if not tareas:
+                    print("No hay tareas registradas.")
                 else:
-                    print(tarea['id'] + ' ' + tarea['titulo'] + ' ' + tarea['descripcion'] + ' ' + tarea['fecha_ingreso'] + ' ' + tarea['frecuencia'] + ' ' + estado)
-    
-        print("-----------------------------------------------------------------------------")
+                    for tarea in tareas:
+                        cursor.execute("SELECT * FROM tareaSimple WHERE id = %s", (tarea[0],))
+                        tarea_simple = cursor.fetchone()
+                        cursor.execute("SELECT * FROM tareaRecurrente WHERE id = %s", (tarea[0],))
+                        tarea_recurrente = cursor.fetchone()
+                        if tarea_simple:
+                            print(f"Tarea Simple: {tarea_simple}")
+                        elif tarea_recurrente:
+                            print(f"Tarea Recurrente: {tarea_recurrente}")
+                        else:
+                            print(f"Tarea: {tarea}")
+        except Exception as error:
+            print(f'Error inesperado al mostrar las tareas: {error}')
 
     def eliminar_tarea(self, id):
         try:
-            datos = self.leer_datos()
-            if str(id) in datos.keys():
-                datos.pop(str(id))
-                self.guardar_datos(datos)
-                print(f"Tarea con id '{id}' eliminada correctamente.")
-            else:
-                print(f"No se encontró la tarea con id: {id}.")
-        except Exception as error:
-            print(f"Error al eliminar la tarea: {error}")
+            connection = self.connect()
+            if connection:
+                with connection.cursor() as cursor:
+                    #Verifico si existe la tarea
+                    if not self.mostrar_tarea(id):
+                        print(f"No existe una tarea con el ID {id}")
+                        return
+                    #Elimino la tarea dependiendo el tipo
+                    if isinstance(self.mostrar_tarea(id), TareaSimple):
+                        cursor.execute("DELETE FROM tareaSimple WHERE id = %s", (id, ))
+                    elif isinstance(self.mostrar_tarea(id), TareaRecurrente):
+                        cursor.execute("DELETE FROM tareaRecurrente WHERE id = %s", (id, ))
+                    cursor.execute("DELETE FROM tareas WHERE id = %s", (id,))
+                    if cursor.rowcount > 0:
+                        connection.commit()
+                        print(f"Tarea con el ID {id} eliminada correctamente.")
+        except Error as error:
+            print(f'Error inesperado al eliminar la tarea: {error}')
+        finally:
+            if connection:
+                connection.close()
 
     def modificar_estado_tarea(self, id, estado):
-        datos = self.leer_datos()
-        if str(id) in datos.keys():
-            tarea = datos[str(id)]
-            if estado:
-                tarea['estado'] = estado
-            self.guardar_datos(datos)
-            print(f"Tarea con id '{id}' modificada correctamente.")
-        else:
-            print(f"No se encontró la tarea con id: {id}.")
+        try:
+            connection = self.connect()
+            if connection:
+                with connection.cursor() as cursor:
+                    if not self.mostrar_tarea(id):
+                        print(f"No existe una tarea con el ID {id}")
+                        return
+                    cursor.execute("UPDATE tareas SET estado = %s WHERE id = %s", (estado, id))
+                    if cursor.rowcount > 0:
+                        connection.commit()
+                        print(f"Tarea con el ID {id} modificada correctamente.")
+                    else:
+                        print(f"No se pudo modificar la tarea con el ID {id}")
+        except Exception as error:
+            print(f'Error inesperado al modificar la tarea: {error}')
+        finally:
+            if connection:
+                connection.close()

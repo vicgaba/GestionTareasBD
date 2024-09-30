@@ -5,13 +5,13 @@ create table tareas(
 	ID char(8) primary key,
     Titulo varchar(50) not null,
     Descripcion varchar(50) not null, 
-    FechaIngreso int not null,
-    Estado decimal(10,2) not null
+    FechaIngreso varchar(10) not null,
+    Estado int(1) not null
 );
 
 create table tareaSimple(
 	ID char(8) primary key,
-    FechaVencimiento varchar(50) not null,
+    FechaVencimiento varchar(10) not null,
     FOREIGN KEY (ID) REFERENCES tareas(ID)
 );
 
