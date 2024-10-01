@@ -5,11 +5,11 @@ from decouple import config
 
 class Tarea:
     def __init__(self, id, titulo, descripcion, fechaIngreso, estado):
-        self.id = self.validar_id(id)
-        self.titulo = self.validar_titulo(titulo)
-        self.descripcion = descripcion
-        self.fechaIngreso = fechaIngreso
-        self.estado = self.validar_estado(estado)
+        self.__id = self.validar_id(id)
+        self.__titulo = self.validar_titulo(titulo)
+        self.__descripcion = descripcion
+        self.__fechaIngreso = fechaIngreso
+        self.__estado = self.validar_estado(estado)
 
     def __str__(self):
         return f"{self.descripcion} - Ingreso: {self.fechaIngreso} - Estado: {self.estado}"
@@ -60,7 +60,7 @@ class Tarea:
         return id
     
     def validar_estado(self, estado):
-        if estado not in ["1", "2", "3"]:
+        if estado not in [1, 2, 3]:
             raise ValueError("Estado inválido. Debe ser 'pendiente', 'en progreso' o 'completada'.")
         return estado
     
@@ -76,13 +76,12 @@ class Tarea:
 class TareaSimple(Tarea):
     def __init__(self, id, titulo, descripcion, fechaIngreso, estado, fechaVencimiento):
         super().__init__(id, titulo, descripcion, fechaIngreso, estado)
-        self.fechaVencimiento = self.validar_fecha_vencimiento(fechaVencimiento)
+        self.__fechaVencimiento = self.validar_fecha_vencimiento(fechaVencimiento)
 
     @property
     def fechaVencimiento(self):
         return self.__fechaVencimiento
     @fechaVencimiento.setter
-
     def fechaVencimiento(self, fechaVencimiento):
         self.__fechaVencimiento = self.validar_fecha_vencimiento(fechaVencimiento)
         return self.__fechaVencimiento
@@ -97,11 +96,11 @@ class TareaSimple(Tarea):
     
     def to_dict(self):
         data = super().to_dict()
-        data["fechaVencimiento"] = self.fechaVencimiento
+        data["fechaVencimiento"] = self.__fechaVencimiento
         return data
     
     def __str__(self):
-        return f"super().__str__() - Vencimiento: {self.fechaVencimiento}" 
+        return f"super().__str__() - Vencimiento: {self.__fechaVencimiento}" 
 
 class TareaRecurrente(Tarea):
     def __init__(self, id, titulo, descripcion, fechaIngreso, estado, frecuencia):
@@ -183,7 +182,7 @@ class GestionTareas:
             connection = self.connect()
             if connection:
                 with connection.cursor(dictionary=True) as cursor:
-                    cursor.execute("SELECT * FROM tareas WHERE id = %s", (int(id),))
+                    cursor.execute("SELECT * FROM tareas WHERE id = %s", (id,))
                     tarea_data = cursor.fetchone()
                     
                     if tarea_data:

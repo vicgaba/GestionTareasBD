@@ -24,7 +24,7 @@ def agregar_tarea_simple(gestion):
     descripcion = input("Ingrese la descripción de la tarea: ")
     fechaIngreso = input("Ingrese la fecha de ingreso (YYYY-MM-DD): ")
     fechaVencimiento = input("Ingrese la fecha de vencimiento (YYYY-MM-DD): ")
-    estado = input("Ingese el estado, 1. Pendiente, 2. En Progreso, 3. Completada: ")
+    estado = int(input("Ingese el estado, 1. Pendiente, 2. En Progreso, 3. Completada: "))
     tarea = TareaSimple(id, titulo, descripcion, fechaIngreso, estado, fechaVencimiento)
 
     gestion.agregar_tarea(tarea)
@@ -36,7 +36,7 @@ def agregar_tarea_recurrente(gestion):
     descripcion = input("Ingrese la descripción de la tarea: ")
     fecha_ingreso = input("Ingrese la fecha de ingreso (YYYY-MM-DD): ")
     frecuencia = input("Ingrese la frecuencia de la tarea (diaria, semanal, mensual): ")
-    estado = input("Ingese el estado, 1. Pendiente, 2. En Progreso, 3. Completada: ")
+    estado = int(input("Ingese el estado, 1. Pendiente, 2. En Progreso, 3. Completada: "))
     tarea = TareaRecurrente(id, titulo, descripcion, fecha_ingreso, estado, frecuencia)
 
     gestion.agregar_tarea(tarea)
