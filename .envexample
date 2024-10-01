@@ -1,5 +1,5 @@
 DB_HOST = localhost
-DB_NAME = colaboradores
+DB_NAME = tareas
 DB_USER = user_name
 DB_PASSWORD = user_password
 DB_PORT = 3306
